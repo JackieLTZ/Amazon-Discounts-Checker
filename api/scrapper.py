@@ -36,7 +36,7 @@ class Scrapper:
         self._driver.get(url)
 
 
-    def check_original_price(self, timeout: float) -> tuple[str, str]:
+    def check_original_price(self, timeout: float) -> tuple[str, str] | None:
         try:
             wait = WebDriverWait(self._driver, timeout)
 
@@ -61,7 +61,6 @@ class Scrapper:
             print(original_price)
             print(after_sale_price)
 
-            return original_price, after_sale_price
 
 
         except TimeoutException as e:
@@ -72,7 +71,11 @@ class Scrapper:
             if self._driver:
                 self._driver.quit()
 
-    def send_email(self, original_price: str, after_sale_price: str) -> None:
+        #this may be huiniya polnaya, so if it is then put it below two pints
+        return original_price, after_sale_price
+
+    @staticmethod
+    def send_email(original_price: str, after_sale_price: str) -> None:
         SMTP_SERVER = config.SMTP_SERVER
         SMTP_PORT = config.SMTP_PORT
         SENDER_EMAIL = config.SENDER_EMAIL
@@ -82,7 +85,7 @@ class Scrapper:
         if original_price == after_sale_price:
             body = f"This product has no sale! Original price is {original_price}"
         elif original_price == "" or after_sale_price == "":
-            raise NoContentException("Body is empty") 
+            raise NoContentException("Body is empty")
         else:
             original_price = f"Original price is: {original_price}"
             after_sale_price = f"Sale price is: {after_sale_price}"
