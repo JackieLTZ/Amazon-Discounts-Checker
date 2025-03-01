@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -9,6 +10,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 import config
+from schemas.schemas import PricesResponse
 
 class NoContentException(Exception):
     def __init__(self, message="No content found"):
@@ -36,18 +38,18 @@ class Scrapper:
         self._driver.get(url)
 
 
-    def check_original_price(self, timeout: float) -> tuple[str, str] | None:
+    def check_original_price(self, timeout: float) -> PricesResponse | None:
         try:
             wait = WebDriverWait(self._driver, timeout)
 
             try:
-                after_sale_price = wait.until(
+                after_discount_price = wait.until(
                     EC.presence_of_element_located(
                         (By.CSS_SELECTOR, "#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-none.aok-align-center.aok-relative > span.a-price.aok-align-center.reinventPricePriceToPayMargin.priceToPay"))
                 ).text.strip()
                 
             except:
-                after_sale_price = "No Sale"
+                after_discount_price = "No Discount"
             
             try:
                 original_price = wait.until(
@@ -56,45 +58,53 @@ class Scrapper:
                     )
                 ).text.strip()
             except Exception:
-                original_price = after_sale_price
+                original_price = after_discount_price
             
+            timestamp = datetime.now(timezone.utc).replace(tzinfo=None)
             print(original_price)
-            print(after_sale_price)
+            print(after_discount_price)
 
 
 
         except TimeoutException as e:
             print(f"Error during fetching the price: {e}")
-            return "", ""
+            return None
 
         finally:
             if self._driver:
                 self._driver.quit()
 
         #this may be huiniya polnaya, so if it is then put it below two pints
-        return original_price, after_sale_price
+        return PricesResponse(
+            original_price=original_price,
+            discount_price=after_discount_price,
+            timestamp=timestamp
+        )
 
     @staticmethod
-    def send_email(original_price: str, after_sale_price: str) -> None:
+    def send_email(price: PricesResponse) -> None:
         SMTP_SERVER = config.SMTP_SERVER
         SMTP_PORT = config.SMTP_PORT
         SENDER_EMAIL = config.SENDER_EMAIL
         SENDER_PASSWORD = config.SENDER_PASSWORD
         RECEIVER_EMAIL = config.RECEIVER_EMAIL
 
-        if original_price == after_sale_price:
-            body = f"This product has no sale! Original price is {original_price}"
-        elif original_price == "" or after_sale_price == "":
+        original_price = price.original_price
+        after_discount_price = price.discount_price
+
+        if original_price == after_discount_price:
+            body = f"This product has no Discount! Original price is {original_price}"
+        elif original_price == "" or after_discount_price == "":
             raise NoContentException("Body is empty")
         else:
             original_price = f"Original price is: {original_price}"
-            after_sale_price = f"Sale price is: {after_sale_price}"
-            body = original_price + "\n" + after_sale_price
+            after_discount_price = f"Discount price is: {after_discount_price}"
+            body = original_price + "\n" + after_discount_price
 
         msg = MIMEMultipart()
         msg["From"] = SENDER_EMAIL
         msg["To"] = RECEIVER_EMAIL
-        msg["Subject"] = "Amazon Sales are comming!"
+        msg["Subject"] = "Amazon Discounts are comming!"
         msg.attach(MIMEText(body, "plain"))
 
         context = ssl.create_default_context()
