@@ -10,5 +10,5 @@ class Price(Base):
 
     ID: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     original_price: Mapped[str] = mapped_column(nullable=False)
-    sale_price: Mapped[str] = mapped_column(nullable=False)
+    discount_price: Mapped[str] = mapped_column(nullable=False)
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
