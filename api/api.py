@@ -42,8 +42,8 @@ async def scrape_price(data_for_request: RequestData, background_tasks: Backgrou
     return {"status": "Processing", "message": "Scraping and email sending started."}
 
 @app.get("/show")
-async def show_prices(session: AsyncSession = Depends(database_manager.get_db)):
-    cars = await database_manager.show_prices(session)
+async def show_prices():
+    cars = await database_manager.show_prices()
 
     return cars
 

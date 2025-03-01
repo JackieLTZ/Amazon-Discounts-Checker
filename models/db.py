@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -16,6 +17,7 @@ class DbManager:
             self._engine, class_=AsyncSession, expire_on_commit=False
         )
 
+    @asynccontextmanager
     async def get_db(self):
         async with self._SessionLocal() as session:
             try:
@@ -54,13 +56,14 @@ class DbManager:
 
         return PricesResponse.model_validate(new_price)
     
-    async def show_prices(self, db: AsyncSession):
-        result = await db.execute(select(Price).order_by(Price.ID))
-        prices = result.scalars().all()
+    async def show_prices(self):
+        async with self._SessionLocal() as session:
+            result = await session.execute(select(Price).order_by(Price.ID))
+            prices = result.scalars().all()
 
-        price_list = [PricesResponse.model_validate(price) for price in prices]
+            price_list = [PricesResponse.model_validate(price) for price in prices]
 
-        return price_list
+            return price_list
 
 
 
