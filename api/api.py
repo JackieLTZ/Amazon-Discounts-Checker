@@ -1,6 +1,5 @@
-from fastapi import BackgroundTasks, Depends, FastAPI
+from fastapi import BackgroundTasks, FastAPI
 from fastapi.concurrency import asynccontextmanager
-from sqlalchemy.ext.asyncio import AsyncSession    
 from schemas.schemas import RequestData
 from .scrapper import Scrapper
 from models.db import DbManager

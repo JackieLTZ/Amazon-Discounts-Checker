@@ -1,5 +1,8 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from selenium import webdriver
+from selenium.webdriver.chrome.webdriver import WebDriver as wb
+from selenium.webdriver.safari.webdriver import WebDriver as wb1
+from selenium.webdriver.firefox.webdriver import WebDriver as wb2
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -20,7 +23,7 @@ class NoContentException(Exception):
 
 class Scrapper:
     def __init__(self):
-        self._driver = None
+        self._driver: wb | wb1 | wb2 = webdriver.Safari()
 
     def set_driver(self, browser: str, url: str) -> None:
         if not browser or not url:
@@ -43,6 +46,16 @@ class Scrapper:
             wait = WebDriverWait(self._driver, timeout)
 
             try:
+                name_of_product = wait.until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "#title_feature_div")
+                    )
+                ).text.strip()
+            
+            except:
+                name_of_product = "Name is invalid"
+
+            try:
                 after_discount_price = wait.until(
                     EC.presence_of_element_located(
                         (By.CSS_SELECTOR, "#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-none.aok-align-center.aok-relative > span.a-price.aok-align-center.reinventPricePriceToPayMargin.priceToPay"))
@@ -61,6 +74,7 @@ class Scrapper:
                 original_price = after_discount_price
             
             timestamp = datetime.now(timezone.utc).replace(tzinfo=None)
+            print(name_of_product)
             print(original_price)
             print(after_discount_price)
 
@@ -74,7 +88,7 @@ class Scrapper:
             if self._driver:
                 self._driver.quit()
 
-        #this may be huiniya polnaya, so if it is then put it below two pints
+        #this may be huiniya polnaya, so if it is then put it below two prints
         return PricesResponse(
             original_price=original_price,
             discount_price=after_discount_price,
@@ -84,7 +98,7 @@ class Scrapper:
     @staticmethod
     def send_email(price: PricesResponse) -> None:
         SMTP_SERVER = config.SMTP_SERVER
-        SMTP_PORT = config.SMTP_PORT
+        SMTP_PORT = int(config.SMTP_PORT)
         SENDER_EMAIL = config.SENDER_EMAIL
         SENDER_PASSWORD = config.SENDER_PASSWORD
         RECEIVER_EMAIL = config.RECEIVER_EMAIL

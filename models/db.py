@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.future import select
 
 import config
@@ -10,10 +10,11 @@ from schemas.schemas import PricesResponse
 
 DATABASE_URL = config.DATABASE_URL
 
+
 class DbManager:
-    def __init__(self, database_url: str = DATABASE_URL):
+    def __init__(self, database_url = DATABASE_URL):
         self._engine = create_async_engine(database_url, echo=True)
-        self._SessionLocal = sessionmaker(
+        self._SessionLocal = async_sessionmaker(
             self._engine, class_=AsyncSession, expire_on_commit=False
         )
 
@@ -43,7 +44,8 @@ class DbManager:
         await self._engine.dispose()
         print("Database connection closed.")
 
-    async def save_price(self, response: PricesResponse, db: AsyncSession):
+    @staticmethod
+    async def save_price(response: PricesResponse, db: AsyncSession):
         new_price = Price(
             original_price=response.original_price, 
             discount_price=response.discount_price, 
@@ -64,10 +66,3 @@ class DbManager:
             price_list = [PricesResponse.model_validate(price) for price in prices]
 
             return price_list
-
-
-
-
-
-
-
