@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver as wb
 from selenium.webdriver.safari.webdriver import WebDriver as wb1
@@ -15,6 +15,7 @@ from email.mime.multipart import MIMEMultipart
 import config
 from schemas.schemas import PricesResponse
 
+
 class NoContentException(Exception):
     def __init__(self, message="No content found"):
         self.message = message
@@ -22,26 +23,25 @@ class NoContentException(Exception):
 
 
 class Scrapper:
-    def __init__(self):
-        self._driver: wb | wb1 | wb2 = webdriver.Safari()
+    def __init__(self, driver):
+        self._driver: wb | wb1 | wb2 = driver
 
     def set_driver(self, browser: str, url: str) -> None:
         if not browser or not url:
             raise ValueError("Browser and URL must be provided.")
-        
-        if browser.lower() == 'chrome':
-            self._driver = webdriver.Chrome()  
-        elif browser.lower() == 'firefox':
-            self._driver = webdriver.Firefox()  
-        elif browser.lower() == 'safari':
-            self._driver = webdriver.Safari()  
+
+        if browser.lower() == "chrome":
+            self._driver = webdriver.Chrome()
+        elif browser.lower() == "firefox":
+            self._driver = webdriver.Firefox()
+        elif browser.lower() == "safari":
+            self._driver = webdriver.Safari()
         else:
             raise ValueError(f"Unsupported browser: {browser}")
 
         self._driver.get(url)
 
-
-    def check_original_price(self, timeout: float) -> PricesResponse | None:
+    def check_original_price(self, timeout: float) -> PricesResponse:
         try:
             wait = WebDriverWait(self._driver, timeout)
 
@@ -51,48 +51,55 @@ class Scrapper:
                         (By.CSS_SELECTOR, "#title_feature_div")
                     )
                 ).text.strip()
-            
-            except:
+
+            except:  # noqa: E722
                 name_of_product = "Name is invalid"
 
             try:
                 after_discount_price = wait.until(
                     EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, "#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-none.aok-align-center.aok-relative > span.a-price.aok-align-center.reinventPricePriceToPayMargin.priceToPay"))
+                        (
+                            By.CSS_SELECTOR,
+                            "#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-none.aok-align-center.aok-relative > span.a-price.aok-align-center.reinventPricePriceToPayMargin.priceToPay",
+                        )
+                    )
                 ).text.strip()
-                
-            except:
+
+            except:  # noqa: E722
                 after_discount_price = "No Discount"
-            
+
             try:
                 original_price = wait.until(
                     EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, "#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-small.aok-align-center > span > span.aok-relative > span.a-size-small.a-color-secondary.aok-align-center.basisPrice > span > span:nth-child(2)")
+                        (
+                            By.CSS_SELECTOR,
+                            "#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-small.aok-align-center > span > span.aok-relative > span.a-size-small.a-color-secondary.aok-align-center.basisPrice > span > span:nth-child(2)",
+                        )
                     )
                 ).text.strip()
             except Exception:
                 original_price = after_discount_price
-            
+
             timestamp = datetime.now(timezone.utc).replace(tzinfo=None)
             print(name_of_product)
             print(original_price)
             print(after_discount_price)
 
-
-
         except TimeoutException as e:
             print(f"Error during fetching the price: {e}")
-            return None
+            return PricesResponse(
+                original_price="", discount_price="", timestamp=datetime.now()
+            )
 
         finally:
             if self._driver:
                 self._driver.quit()
 
-        #this may be huiniya polnaya, so if it is then put it below two prints
+        # this may be huiniya polnaya, so if it is then put it below two prints
         return PricesResponse(
             original_price=original_price,
             discount_price=after_discount_price,
-            timestamp=timestamp
+            timestamp=timestamp,
         )
 
     @staticmethod
