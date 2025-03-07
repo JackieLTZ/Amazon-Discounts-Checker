@@ -3,3 +3,7 @@
 /env
 .idea
 __pycache__
+.ropeproject
+*.pyc
+*.pyo
+.pytest_cache
